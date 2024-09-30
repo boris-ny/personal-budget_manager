@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -14,41 +14,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-// import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { formSchema } from '@/lib/types';
-import { z } from 'zod';
-
-type ItemData = z.infer<typeof formSchema>;
+import { useBudget } from '@/context/useBudget';
 
 export default function ItemTable() {
-  const [items, setItems] = useState<ItemData[]>([]);
-  const [filteredItems, setFilteredItems] = useState<ItemData[]>([]);
+  const { state } = useBudget();
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('');
 
-  useEffect(() => {
-    const storedItems = JSON.parse(localStorage.getItem('items') || '[]');
-    setItems(storedItems);
-    setFilteredItems(storedItems);
-  }, []);
-
-  useEffect(() => {
-    let result = items;
-
-    if (categoryFilter !== 'all') {
-      result = result.filter((item) => item.category === categoryFilter);
-    }
-
-    if (dateFilter) {
-      result = result.filter((item) => item.date === dateFilter);
-    }
-
-    setFilteredItems(result);
-  }, [items, categoryFilter, dateFilter]);
+  const filteredItems = state.items.filter((item) => {
+    if (categoryFilter !== 'all' && item.category !== categoryFilter)
+      return false;
+    if (dateFilter && item.date !== dateFilter) return false;
+    return true;
+  });
 
   const uniqueDates = Array.from(
-    new Set(items.map((item) => item.date))
+    new Set(state.items.map((item) => item.date))
   ).sort();
 
   return (
@@ -64,6 +46,7 @@ export default function ItemTable() {
               <SelectItem value="all">All Categories</SelectItem>
               <SelectItem value="food">Food</SelectItem>
               <SelectItem value="utilities">Utilities</SelectItem>
+              <SelectItem value="transport">Transport</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -94,9 +77,9 @@ export default function ItemTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredItems.map((item, index) => (
-            <TableRow key={index}>
-              <TableCell>{item.name}</TableCell>
+          {filteredItems.map((item) => (
+            <TableRow key={item.id}>
+              <TableCell>{item.itemName}</TableCell>
               <TableCell>${item.amount}</TableCell>
               <TableCell>
                 {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
