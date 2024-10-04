@@ -15,17 +15,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { useBudget } from '@/context/useBudget';
+import { useBudget } from '@/hooks/useBudget';
 
 export default function ItemTable() {
   const { state } = useBudget();
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<string>('all');
 
   const filteredItems = state.items.filter((item) => {
     if (categoryFilter !== 'all' && item.category !== categoryFilter)
       return false;
-    if (dateFilter && item.date !== dateFilter) return false;
+    if (dateFilter !== 'all' && item.date !== dateFilter) return false;
     return true;
   });
 
@@ -44,9 +44,11 @@ export default function ItemTable() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="food">Food</SelectItem>
-              <SelectItem value="utilities">Utilities</SelectItem>
-              <SelectItem value="transport">Transport</SelectItem>
+              {state.categories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -57,7 +59,7 @@ export default function ItemTable() {
               <SelectValue placeholder="Select date" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="date">All Dates</SelectItem>
+              <SelectItem value="all">All Dates</SelectItem>
               {uniqueDates.map((date) => (
                 <SelectItem key={date} value={date}>
                   {date}
@@ -67,28 +69,32 @@ export default function ItemTable() {
           </Select>
         </div>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Item Name</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Date</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredItems.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell>{item.itemName}</TableCell>
-              <TableCell>${item.amount}</TableCell>
-              <TableCell>
-                {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
-              </TableCell>
-              <TableCell>{item.date}</TableCell>
+      {filteredItems.length === 0 ? (
+        <p className="text-center italic text-muted-foreground">
+          No items found. Please add some items.
+        </p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Item Name</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Date</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {filteredItems.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>{item.itemName}</TableCell>
+                <TableCell>${item.amount.toFixed(2)}</TableCell>
+                <TableCell>{item.category}</TableCell>
+                <TableCell>{item.date}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React, { createContext, useReducer, useEffect } from 'react';
 
-type Category = 'food' | 'utilities' | 'transport';
+type Category = string;
 
 type Item = {
   id: string;
@@ -18,17 +18,23 @@ type BudgetLimit = {
 type State = {
   items: Item[];
   budgetLimits: BudgetLimit[];
+  categories: Category[];
 };
 
 type Action =
   | { type: 'ADD_ITEM'; payload: Item }
   | { type: 'SET_BUDGET_LIMIT'; payload: BudgetLimit }
+  | { type: 'DELETE_BUDGET_LIMIT'; payload: Category }
+  | { type: 'ADD_CATEGORY'; payload: Category }
+  | { type: 'DELETE_CATEGORY'; payload: Category }
   | { type: 'LOAD_ITEMS'; payload: Item[] }
-  | { type: 'LOAD_BUDGET_LIMITS'; payload: BudgetLimit[] };
+  | { type: 'LOAD_BUDGET_LIMITS'; payload: BudgetLimit[] }
+  | { type: 'LOAD_CATEGORIES'; payload: Category[] };
 
 const initialState: State = {
   items: [],
   budgetLimits: [],
+  categories: [],
 };
 
 function budgetReducer(state: State, action: Action): State {
@@ -49,10 +55,35 @@ function budgetReducer(state: State, action: Action): State {
         budgetLimits: [...state.budgetLimits, action.payload],
       };
     }
+    case 'DELETE_BUDGET_LIMIT':
+      return {
+        ...state,
+        budgetLimits: state.budgetLimits.filter(
+          (limit) => limit.category !== action.payload
+        ),
+      };
+    case 'ADD_CATEGORY':
+      if (!state.categories.includes(action.payload)) {
+        return { ...state, categories: [...state.categories, action.payload] };
+      }
+      return state;
+    case 'DELETE_CATEGORY':
+      return {
+        ...state,
+        categories: state.categories.filter(
+          (category) => category !== action.payload
+        ),
+        budgetLimits: state.budgetLimits.filter(
+          (limit) => limit.category !== action.payload
+        ),
+        items: state.items.filter((item) => item.category !== action.payload),
+      };
     case 'LOAD_ITEMS':
       return { ...state, items: action.payload };
     case 'LOAD_BUDGET_LIMITS':
       return { ...state, budgetLimits: action.payload };
+    case 'LOAD_CATEGORIES':
+      return { ...state, categories: action.payload };
     default:
       return state;
   }
@@ -77,6 +108,11 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       localStorage.getItem('budgetLimits') || '[]'
     );
     dispatch({ type: 'LOAD_BUDGET_LIMITS', payload: storedLimits });
+
+    const storedCategories = JSON.parse(
+      localStorage.getItem('categories') || '["food", "utilities"]'
+    );
+    dispatch({ type: 'LOAD_CATEGORIES', payload: storedCategories });
   }, []);
 
   useEffect(() => {
@@ -86,6 +122,10 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     localStorage.setItem('budgetLimits', JSON.stringify(state.budgetLimits));
   }, [state.budgetLimits]);
+
+  useEffect(() => {
+    localStorage.setItem('categories', JSON.stringify(state.categories));
+  }, [state.categories]);
 
   return (
     <BudgetContext.Provider value={{ state, dispatch }}>

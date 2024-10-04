@@ -1,5 +1,3 @@
-'use client';
-
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -21,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useBudget } from '@/context/useBudget';
+import { useBudget } from '@/hooks/useBudget';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from '@tanstack/react-router';
@@ -33,7 +31,7 @@ const formSchema = z.object({
   amount: z.coerce.number().positive({
     message: 'Amount must be a positive number.',
   }),
-  category: z.enum(['food', 'utilities'], {
+  category: z.string({
     required_error: 'Please select a category.',
   }),
   date: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -43,11 +41,7 @@ const formSchema = z.object({
 
 type ItemData = z.infer<typeof formSchema>;
 
-export default function ItemForm({
-  onItemAdded,
-}: {
-  onItemAdded?: () => void;
-}) {
+export default function ItemForm() {
   const { state, dispatch } = useBudget();
 
   const form = useForm<ItemData>({
@@ -55,7 +49,7 @@ export default function ItemForm({
     defaultValues: {
       itemName: '',
       amount: 0,
-      category: undefined,
+      category: state.categories[0],
       date: '',
     },
   });
@@ -76,16 +70,11 @@ export default function ItemForm({
     checkBudgetLimit(values.category, values.amount);
 
     form.reset();
-    if (onItemAdded) {
-      onItemAdded();
-      navigate({ to: '/expenses' });
-    }
+
+    navigate({ to: '/expenses' });
   }
 
-  const checkBudgetLimit = (
-    category: 'food' | 'utilities' | 'transport',
-    amount: number
-  ) => {
+  const checkBudgetLimit = (category: string, amount: number) => {
     const limit = state.budgetLimits.find(
       (limit) => limit.category === category
     )?.limit;
@@ -111,7 +100,9 @@ export default function ItemForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="grid grid-cols-1 gap-8 md:grid-cols-2">
         <FormField
           control={form.control}
           name="itemName"
@@ -157,12 +148,15 @@ export default function ItemForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="food">Food</SelectItem>
-                  <SelectItem value="utilities">Utilities</SelectItem>
+                  {state.categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormDescription>
-                Select the category of the item.
+                Select the category for this item.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -182,7 +176,11 @@ export default function ItemForm({
             </FormItem>
           )}
         />
-        <Button type="submit">Add Item</Button>
+        <div className="col-span-1 md:col-span-2 flex justify-center w-full">
+          <Button type="submit" className="w-full md:w-1/3">
+            Add Item
+          </Button>
+        </div>
       </form>
     </Form>
   );
