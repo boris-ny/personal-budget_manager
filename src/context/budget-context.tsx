@@ -110,7 +110,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'LOAD_BUDGET_LIMITS', payload: storedLimits });
 
     const storedCategories = JSON.parse(
-      localStorage.getItem('categories') || '["food", "utilities"]'
+      localStorage.getItem('categories') || '[]'
     );
     dispatch({ type: 'LOAD_CATEGORIES', payload: storedCategories });
   }, []);
